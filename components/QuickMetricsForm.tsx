@@ -1,8 +1,18 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Modal, Button, Input, TagPicker } from './ui';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/primitives';
 import { DayMetrics } from '@/lib/types';
+import { cn } from '@/lib/utils';
+
+const TAGS = ['PMS', 'Sore', 'Hungry', 'Great sleep', 'Tired', 'Stressed', 'Good energy', 'Bloated'];
+const MOODS: { v: 1|2|3|4|5; e: string }[] = [
+  { v: 1, e: '😞' }, { v: 2, e: '😕' }, { v: 3, e: '😐' }, { v: 4, e: '🙂' }, { v: 5, e: '😄' },
+];
 
 interface QuickMetricsFormProps {
   open: boolean;
@@ -21,6 +31,10 @@ export function QuickMetricsForm({ open, onOpenChange, onSubmit, current, date }
   const [tags, setTags] = useState<string[]>(current.tags ?? []);
   const [mood, setMood] = useState<1|2|3|4|5|undefined>(current.mood);
 
+  function toggleTag(tag: string) {
+    setTags(t => t.includes(tag) ? t.filter(x => x !== tag) : [...t, tag]);
+  }
+
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
     onSubmit({
@@ -35,55 +49,85 @@ export function QuickMetricsForm({ open, onOpenChange, onSubmit, current, date }
     onOpenChange(false);
   }
 
-  const moodLabels: Record<number, string> = { 1: '😞', 2: '😕', 3: '😐', 4: '🙂', 5: '😄' };
-
   return (
-    <Modal open={open} onOpenChange={onOpenChange} title="Daily Metrics" description={date}>
-      <form onSubmit={handleSubmit} className="space-y-4">
-        <div className="grid grid-cols-2 gap-3">
-          <Input label="Weight (kg)" type="number" value={weight} onChange={e => setWeight(e.target.value)} step={0.1} min={30} max={200} placeholder="60.0" />
-          <Input label="Steps" type="number" value={steps} onChange={e => setSteps(e.target.value)} min={0} placeholder="8000" />
-          <Input label="Water (L)" type="number" value={water} onChange={e => setWater(e.target.value)} step={0.1} min={0} max={10} placeholder="2.0" />
-          <Input label="Sleep (h)" type="number" value={sleep} onChange={e => setSleep(e.target.value)} step={0.5} min={0} max={24} placeholder="7.5" />
-        </div>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Daily metrics</DialogTitle>
+          <DialogDescription>{date}</DialogDescription>
+        </DialogHeader>
 
-        <div className="space-y-1.5">
-          <p className="text-xs font-medium text-zinc-600 uppercase tracking-wide">Mood</p>
-          <div className="flex gap-2">
-            {([1, 2, 3, 4, 5] as const).map(m => (
-              <button
-                key={m}
-                type="button"
-                onClick={() => setMood(mood === m ? undefined : m)}
-                className={`flex-1 py-2 rounded-xl text-xl transition-all ${mood === m ? 'bg-zinc-900 shadow-md scale-105' : 'bg-zinc-100 hover:bg-zinc-200'}`}
-              >
-                {moodLabels[m]}
-              </button>
-            ))}
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-2 gap-3">
+            <div className="space-y-1.5">
+              <Label>Weight (kg)</Label>
+              <Input type="number" value={weight} onChange={e => setWeight(e.target.value)} step={0.1} min={30} max={200} placeholder="60.0" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Steps</Label>
+              <Input type="number" value={steps} onChange={e => setSteps(e.target.value)} min={0} placeholder="8000" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Water (L)</Label>
+              <Input type="number" value={water} onChange={e => setWater(e.target.value)} step={0.1} min={0} max={10} placeholder="2.0" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Sleep (h)</Label>
+              <Input type="number" value={sleep} onChange={e => setSleep(e.target.value)} step={0.5} min={0} max={24} placeholder="7.5" />
+            </div>
           </div>
-        </div>
 
-        <div className="space-y-1.5">
-          <p className="text-xs font-medium text-zinc-600 uppercase tracking-wide">Tags</p>
-          <TagPicker selected={tags} onChange={setTags} />
-        </div>
+          <div className="space-y-2">
+            <Label>Mood</Label>
+            <div className="flex gap-2">
+              {MOODS.map(m => (
+                <button
+                  key={m.v}
+                  type="button"
+                  onClick={() => setMood(mood === m.v ? undefined : m.v)}
+                  className={cn(
+                    'flex-1 rounded-lg py-2.5 text-xl transition-all',
+                    mood === m.v ? 'bg-foreground' : 'bg-secondary hover:bg-accent'
+                  )}
+                >
+                  {m.e}
+                </button>
+              ))}
+            </div>
+          </div>
 
-        <div className="space-y-1.5">
-          <label className="text-xs font-medium text-zinc-600 uppercase tracking-wide">Notes</label>
-          <textarea
-            value={notes}
-            onChange={e => setNotes(e.target.value)}
-            className="w-full px-3 py-2 text-sm bg-white border border-zinc-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-zinc-900 resize-none placeholder:text-zinc-400"
-            rows={2}
-            placeholder="How are you feeling? Anything to note..."
-          />
-        </div>
+          <div className="space-y-2">
+            <Label>Tags</Label>
+            <div className="flex flex-wrap gap-1.5">
+              {TAGS.map(tag => (
+                <button
+                  key={tag}
+                  type="button"
+                  onClick={() => toggleTag(tag)}
+                  className={cn(
+                    'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
+                    tags.includes(tag)
+                      ? 'border-foreground bg-foreground text-background'
+                      : 'border-input bg-background hover:bg-accent'
+                  )}
+                >
+                  {tag}
+                </button>
+              ))}
+            </div>
+          </div>
 
-        <div className="flex gap-2 pt-1">
-          <Button type="submit" className="flex-1">Save Metrics</Button>
-          <Button type="button" variant="secondary" onClick={() => onOpenChange(false)}>Cancel</Button>
-        </div>
-      </form>
-    </Modal>
+          <div className="space-y-1.5">
+            <Label>Notes</Label>
+            <Textarea value={notes} onChange={e => setNotes(e.target.value)} placeholder="How are you feeling? Anything to note..." rows={2} />
+          </div>
+
+          <div className="flex gap-2">
+            <Button type="submit" className="flex-1">Save metrics</Button>
+            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }
